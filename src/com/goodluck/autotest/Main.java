@@ -1,13 +1,20 @@
 package com.goodluck.autotest;
 
+import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.sound.midi.SysexMessage;
 
+import com.android.ddmlib.AdbCommandRejectedException;
 import com.android.ddmlib.IDevice;
+import com.android.ddmlib.ShellCommandUnresponsiveException;
+import com.android.ddmlib.TimeoutException;
 import com.android.hierarchyviewerlib.device.DeviceBridge;
 import com.android.hierarchyviewerlib.device.ViewServerDevice;
 import com.android.hierarchyviewerlib.device.DeviceBridge.ViewServerInfo;
+import com.android.hierarchyviewerlib.device.HvDeviceFactory;
+import com.android.hierarchyviewerlib.device.IHvDevice;
 import com.android.hierarchyviewerlib.models.Window;
 
 public class Main {
@@ -15,7 +22,7 @@ public class Main {
         return System.getProperty("os.name").startsWith("Windows");
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, TimeoutException, AdbCommandRejectedException, IOException {
         String adbLocation = isWindows() ? "adb" : "/Users/jungho/Library/Android/sdk/platform-tools/adb";
         DeviceBridge.initDebugBridge(adbLocation);
         int retryCnt = 5;
@@ -30,9 +37,11 @@ public class Main {
         }
 
         for (IDevice device : DeviceBridge.getDevices()) {
-            System.out.println(device + "\n");
+        	System.out.println(device + "\n");
             DeviceBridge.setupDeviceForward(device);
         }
+        
+        DeviceBridge.startListenForDevices(new Worker());
 
         IDevice device = DeviceBridge.getDevices()[0];
         if (!DeviceBridge.isViewServerRunning(device)) {
@@ -44,15 +53,16 @@ public class Main {
         System.out.println("server:" + server.serverVersion + "\n");
         System.out.println("port:" + DeviceBridge.getDeviceLocalPort(device));
 
-        Set<String> windows = null;
+        Set<String> windows = new HashSet<String>();
         Window appWindow = null;
-        Window[] windowz = DeviceBridge.loadWindows(new ViewServerDevice(device), device);
+        
+        Window[] windowz = DeviceBridge.loadWindows(HvDeviceFactory.create(device), device);
         for (Window window : windowz) {
-            windows.add(window.encode());
-            System.out.println(window + ":" + window.encode() + "\n");
-            if (window.toString().endsWith("Development")) {
-                appWindow = window;
-            }
+        	windows.add(window.encode());
+        	System.out.println(window + ":" + window.encode() + "\n");
+        	if (window.toString().endsWith("Development")) {
+        		appWindow = window;
+        	}
         }
 
         if (!DeviceBridge.isViewServerRunning(device)) {
