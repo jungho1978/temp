@@ -15,15 +15,20 @@ import com.android.hierarchyviewerlib.device.ViewServerDevice;
 import com.android.hierarchyviewerlib.device.DeviceBridge.ViewServerInfo;
 import com.android.hierarchyviewerlib.device.HvDeviceFactory;
 import com.android.hierarchyviewerlib.device.IHvDevice;
+import com.android.hierarchyviewerlib.models.ViewNode;
 import com.android.hierarchyviewerlib.models.Window;
+import com.android.monkeyrunner.MonkeyRunner;
 
 public class Main {
+	private static Set<ViewNode> visitedViews;
+	
     public static boolean isWindows() {
         return System.getProperty("os.name").startsWith("Windows");
     }
 
     public static void main(String[] args) throws InterruptedException, TimeoutException, AdbCommandRejectedException, IOException {
-        String adbLocation = isWindows() ? "adb" : "/Users/jungho/Library/Android/sdk/platform-tools/adb";
+        visitedViews = new HashSet<ViewNode>();
+    	String adbLocation = isWindows() ? "adb" : "/Users/jungho/Library/Android/sdk/platform-tools/adb";
         DeviceBridge.initDebugBridge(adbLocation);
         int retryCnt = 5;
         do {
@@ -70,7 +75,7 @@ public class Main {
         }
         
         if (appWindow != null) {
-            ;
+            ViewNode view = DeviceBridge.loadWindowData(appWindow);
         } else {
             System.out.println("Application window not found");
         }
@@ -78,5 +83,16 @@ public class Main {
         DeviceBridge.stopViewServer(device);
         DeviceBridge.terminate();
         System.exit(0);
+    }
+    
+    private static void traverseView(IDevice device, Window window, ViewNode view) {
+    	if (visitedViews.contains(view)) {
+    		return;
+    	}
+    	
+    	visitedViews.add(view);
+    	
+    	if (view.name.contains("TextView") || view.name.contains("Button")) {
+    	}
     }
 }
