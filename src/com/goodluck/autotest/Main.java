@@ -2,10 +2,13 @@ package com.goodluck.autotest;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import javax.sound.midi.SysexMessage;
 
+import com.android.chimpchat.ChimpChat;
 import com.android.ddmlib.AdbCommandRejectedException;
 import com.android.ddmlib.IDevice;
 import com.android.ddmlib.ShellCommandUnresponsiveException;
@@ -17,18 +20,22 @@ import com.android.hierarchyviewerlib.device.HvDeviceFactory;
 import com.android.hierarchyviewerlib.device.IHvDevice;
 import com.android.hierarchyviewerlib.models.ViewNode;
 import com.android.hierarchyviewerlib.models.Window;
+import com.android.monkeyrunner.MonkeyDevice;
 import com.android.monkeyrunner.MonkeyRunner;
 
 public class Main {
-	private static Set<ViewNode> visitedViews;
-	
+    private static Set<ViewNode> visitedViews;
+    private static String adbLocation = null;
+    static {
+        adbLocation = isWindows() ? "adb" : "/Users/jungho/Library/Android/sdk/platform-tools/adb";
+    }
+
     public static boolean isWindows() {
         return System.getProperty("os.name").startsWith("Windows");
     }
 
     public static void main(String[] args) throws InterruptedException, TimeoutException, AdbCommandRejectedException, IOException {
         visitedViews = new HashSet<ViewNode>();
-    	String adbLocation = isWindows() ? "adb" : "/Users/jungho/Library/Android/sdk/platform-tools/adb";
         DeviceBridge.initDebugBridge(adbLocation);
         int retryCnt = 5;
         do {
@@ -42,10 +49,10 @@ public class Main {
         }
 
         for (IDevice device : DeviceBridge.getDevices()) {
-        	System.out.println(device + "\n");
+            System.out.println(device + "\n");
             DeviceBridge.setupDeviceForward(device);
         }
-        
+
         DeviceBridge.startListenForDevices(new Worker());
 
         IDevice device = DeviceBridge.getDevices()[0];
@@ -60,31 +67,32 @@ public class Main {
 
         Set<String> windows = new HashSet<String>();
         Window appWindow = null;
-        
+
         Window[] windowz = DeviceBridge.loadWindows(HvDeviceFactory.create(device), device);
         for (Window window : windowz) {
-        	windows.add(window.encode());
-        	System.out.println(window + ":" + window.encode() + "\n");
-        	if (window.toString().endsWith("Development")) {
-        		appWindow = window;
-        	}
+            windows.add(window.encode());
+            System.out.println(window + ":" + window.encode() + "\n");
+            if (window.toString().endsWith("ConversationList")) {
+                appWindow = window;
+            }
         }
 
         if (!DeviceBridge.isViewServerRunning(device)) {
             System.out.println("startViewServer:" + DeviceBridge.startViewServer(device) + "\n");
         }
-        
+
         if (appWindow != null) {
             ViewNode view = DeviceBridge.loadWindowData(appWindow);
+            traverseView(device, appWindow, view);
         } else {
             System.out.println("Application window not found");
         }
-        
+
         DeviceBridge.stopViewServer(device);
         DeviceBridge.terminate();
         System.exit(0);
     }
-    
+
     private static void traverseView(IDevice device, Window window, ViewNode view) {
     	if (visitedViews.contains(view)) {
     		return;
@@ -93,6 +101,23 @@ public class Main {
     	visitedViews.add(view);
     	
     	if (view.name.contains("TextView") || view.name.contains("Button")) {
+    	    Map<String, String> options = new TreeMap<String, String>();
+    	    options.put("backend", "adb");
+    	    options.put("adbLocation", adbLocation);
+    	    ChimpChat chimpChat = ChimpChat.getInstance(options);
     	}
+    	for (ViewNode child : view.children) {
+    	    traverseView(device, window, child);
+    	}
+    }
+
+    private static Position getViewTopLeft(ViewNode view) {
+        if (view.parent != null) {
+            Position pos = getViewTopLeft(view.parent);
+            pos.x += view.left;
+            pos.y += view.top;
+            return pos;
+        }
+        return new Position(view.left, view.top);
     }
 }
