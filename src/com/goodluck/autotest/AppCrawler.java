@@ -1,11 +1,19 @@
 package com.goodluck.autotest;
 
+import java.util.HashSet;
+import java.util.Set;
+
+import org.eclipse.swt.graphics.Point;
+
+import com.android.chimpchat.adb.AdbChimpDevice;
+import com.android.chimpchat.core.IChimpDevice;
+import com.android.chimpchat.core.PhysicalButton;
+import com.android.chimpchat.core.TouchPressType;
 import com.android.chimpchat.hierarchyviewer.HierarchyViewer;
 import com.android.ddmlib.AndroidDebugBridge;
 import com.android.ddmlib.IDevice;
 import com.android.hierarchyviewerlib.device.DeviceBridge;
 import com.android.hierarchyviewerlib.device.HvDeviceFactory;
-import com.android.hierarchyviewerlib.device.ViewServerDevice;
 import com.android.hierarchyviewerlib.models.ViewNode;
 import com.android.hierarchyviewerlib.models.Window;
 
@@ -18,7 +26,9 @@ public class AppCrawler {
     private static boolean isWindow() {
         return System.getProperty("os.name").startsWith("Windows");
     }
-
+    
+    private static Set<ViewNode> sVisitedViews = new HashSet<ViewNode>();
+    
     public static void main(String[] args) throws InterruptedException {
         AndroidDebugBridge.init(false);
         AndroidDebugBridge bridge = AndroidDebugBridge.createBridge(sAdbLocation, true);
@@ -46,8 +56,9 @@ public class AppCrawler {
         for (Window w : windows) {
             if (w.getHashCode() == id) {
                 System.out.println(w.getTitle());
+                IChimpDevice chimpDevice = new AdbChimpDevice(device);
                 ViewNode view = DeviceBridge.loadWindowData(w);
-                traverseView(device, w, view);
+                traverseView(chimpDevice, device, w, view);
             }
         }
 
@@ -57,10 +68,27 @@ public class AppCrawler {
         System.exit(0);
     }
 
-    private static void traverseView(IDevice device, Window window, ViewNode view) {
-        System.out.println(HierarchyViewer.getAbsolutePositionOfView(view));
+    private static void traverseView(IChimpDevice chimpDevice, IDevice device, Window window, ViewNode view) throws InterruptedException {
+    	if (sVisitedViews.contains(view)) {
+    		System.out.println(view.name + " has been already visited");
+    		return;
+    	}
+    	sVisitedViews.add(view);
+    	
+    	if (view.name.contains("TextView") || view.name.contains("Button")) {
+    		Point point = HierarchyViewer.getAbsoluteCenterOfView(view);
+    		chimpDevice.touch(point.x, point.y, TouchPressType.DOWN_AND_UP);
+    		Thread.sleep(3000);
+    		
+    		Window[] windows = DeviceBridge.loadWindows(HvDeviceFactory.create(device), device);
+    		for (Window w : windows) {
+    			traverseView(chimpDevice, device, w, view);
+    		}
+    		
+    		chimpDevice.press(PhysicalButton.BACK, TouchPressType.DOWN_AND_UP);
+    	}
         for (ViewNode c : view.children) {
-            traverseView(device, window, c);
+            traverseView(chimpDevice, device, window, c);
         }
     }
 }

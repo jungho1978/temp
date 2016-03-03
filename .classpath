@@ -20,6 +20,6 @@
 	</classpathentry>
 	<classpathentry kind="lib" path="libs/swt.jar"/>
 	<classpathentry kind="lib" path="libs/guava-17.0.jar"/>
-	<classpathentry kind="lib" path="libs/chimpchat.jar" sourcepath="D:/github/swt"/>
+	<classpathentry kind="lib" path="libs/chimpchat.jar" sourcepath="/Users/jungho/Documents/github/swt"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
