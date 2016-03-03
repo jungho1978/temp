@@ -3,7 +3,7 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
 	<classpathentry kind="lib" path="libs/hierarchyviewer2.jar"/>
-	<classpathentry kind="lib" path="libs/hierarchyviewer2lib.jar" sourcepath="/Users/jungho/Documents/github">
+	<classpathentry kind="lib" path="libs/hierarchyviewer2lib.jar" sourcepath="D:/github/swt">
 		<attributes>
 			<attribute name="source_encoding" value="UTF-8"/>
 		</attributes>
@@ -20,6 +20,6 @@
 	</classpathentry>
 	<classpathentry kind="lib" path="libs/swt.jar"/>
 	<classpathentry kind="lib" path="libs/guava-17.0.jar"/>
-	<classpathentry kind="lib" path="libs/chimpchat.jar"/>
+	<classpathentry kind="lib" path="libs/chimpchat.jar" sourcepath="D:/github/swt"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

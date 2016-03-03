@@ -6,22 +6,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import javax.sound.midi.SysexMessage;
-
 import com.android.chimpchat.ChimpChat;
 import com.android.ddmlib.AdbCommandRejectedException;
 import com.android.ddmlib.IDevice;
-import com.android.ddmlib.ShellCommandUnresponsiveException;
 import com.android.ddmlib.TimeoutException;
 import com.android.hierarchyviewerlib.device.DeviceBridge;
-import com.android.hierarchyviewerlib.device.ViewServerDevice;
 import com.android.hierarchyviewerlib.device.DeviceBridge.ViewServerInfo;
 import com.android.hierarchyviewerlib.device.HvDeviceFactory;
-import com.android.hierarchyviewerlib.device.IHvDevice;
 import com.android.hierarchyviewerlib.models.ViewNode;
 import com.android.hierarchyviewerlib.models.Window;
-import com.android.monkeyrunner.MonkeyDevice;
-import com.android.monkeyrunner.MonkeyRunner;
 
 public class Main {
     private static Set<ViewNode> visitedViews;
@@ -94,21 +87,21 @@ public class Main {
     }
 
     private static void traverseView(IDevice device, Window window, ViewNode view) {
-    	if (visitedViews.contains(view)) {
-    		return;
-    	}
-    	
-    	visitedViews.add(view);
-    	
-    	if (view.name.contains("TextView") || view.name.contains("Button")) {
-    	    Map<String, String> options = new TreeMap<String, String>();
-    	    options.put("backend", "adb");
-    	    options.put("adbLocation", adbLocation);
-    	    ChimpChat chimpChat = ChimpChat.getInstance(options);
-    	}
-    	for (ViewNode child : view.children) {
-    	    traverseView(device, window, child);
-    	}
+        if (visitedViews.contains(view)) {
+            return;
+        }
+
+        visitedViews.add(view);
+
+        if (view.name.contains("TextView") || view.name.contains("Button")) {
+            Map<String, String> options = new TreeMap<String, String>();
+            options.put("backend", "adb");
+            options.put("adbLocation", adbLocation);
+            ChimpChat chimpChat = ChimpChat.getInstance(options);
+        }
+        for (ViewNode child : view.children) {
+            traverseView(device, window, child);
+        }
     }
 
     private static Position getViewTopLeft(ViewNode view) {
