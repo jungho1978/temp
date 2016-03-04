@@ -26,9 +26,9 @@ public class AppCrawler {
     private static boolean isWindow() {
         return System.getProperty("os.name").startsWith("Windows");
     }
-    
-    private static Set<ViewNode> sVisitedViews = new HashSet<ViewNode>();
-    
+
+    private static Set<String> sVisitedViews = new HashSet<String>();
+
     public static void main(String[] args) throws InterruptedException {
         AndroidDebugBridge.init(false);
         AndroidDebugBridge bridge = AndroidDebugBridge.createBridge(sAdbLocation, true);
@@ -55,10 +55,13 @@ public class AppCrawler {
         Window[] windows = DeviceBridge.loadWindows(HvDeviceFactory.create(device), device);
         for (Window w : windows) {
             if (w.getHashCode() == id) {
-                System.out.println(w.getTitle());
-                IChimpDevice chimpDevice = new AdbChimpDevice(device);
+                System.out.println("Target App [" + getPkgName(w) + "]");
+                String pkgName = getPkgName(w);
                 ViewNode view = DeviceBridge.loadWindowData(w);
-                traverseView(chimpDevice, device, w, view);
+                printViewInfo(view);
+//                IChimpDevice chimpDevice = new AdbChimpDevice(device);
+//                ViewNode view = DeviceBridge.loadWindowData(w);
+//                traverseView(chimpDevice, device, pkgName, w, view);
             }
         }
 
@@ -68,27 +71,72 @@ public class AppCrawler {
         System.exit(0);
     }
 
-    private static void traverseView(IChimpDevice chimpDevice, IDevice device, Window window, ViewNode view) throws InterruptedException {
-    	if (sVisitedViews.contains(view)) {
-    		System.out.println(view.name + " has been already visited");
-    		return;
-    	}
-    	sVisitedViews.add(view);
-    	
-    	if (view.name.contains("TextView") || view.name.contains("Button")) {
-    		Point point = HierarchyViewer.getAbsoluteCenterOfView(view);
-    		chimpDevice.touch(point.x, point.y, TouchPressType.DOWN_AND_UP);
-    		Thread.sleep(3000);
-    		
-    		Window[] windows = DeviceBridge.loadWindows(HvDeviceFactory.create(device), device);
-    		for (Window w : windows) {
-    			traverseView(chimpDevice, device, w, view);
-    		}
-    		
-    		chimpDevice.press(PhysicalButton.BACK, TouchPressType.DOWN_AND_UP);
-    	}
+    private static void traverseView(IChimpDevice chimpDevice, IDevice device, String pkgName, Window window, ViewNode view) throws InterruptedException {
+        if (!getPkgName(window).contains(pkgName)) {
+            return;
+        }
+
+        if (sVisitedViews.contains(view.toString())) {
+            System.out.println(view.toString());
+            return;
+        }
+        sVisitedViews.add(view.toString());
+
+        boolean isVisible = view.namedProperties.get("getVisibility()").value.equals("VISIBLE");
+        boolean isClickable = view.namedProperties.get("isClickable()").value.equals("true");
+
+        if (isVisible && isClickable) {
+            System.out.println("---------------------------------");
+            System.out.println(toViewString(view));
+            System.out.println("---------------------------------");
+            Point point = HierarchyViewer.getAbsoluteCenterOfView(view);
+            chimpDevice.touch(point.x, point.y, TouchPressType.DOWN_AND_UP);
+            Thread.sleep(3000);
+
+            Window[] windows = DeviceBridge.loadWindows(HvDeviceFactory.create(device), device);
+            for (Window w : windows) {
+                ViewNode v = DeviceBridge.loadWindowData(w);
+                traverseView(chimpDevice, device, pkgName, w, v);
+            }
+
+            chimpDevice.press(PhysicalButton.BACK, TouchPressType.DOWN_AND_UP);
+        }
+
         for (ViewNode c : view.children) {
-            traverseView(chimpDevice, device, window, c);
+            traverseView(chimpDevice, device, pkgName, window, c);
+        }
+    }
+
+    private static String getPkgName(Object obj) {
+        String pkgName = null;
+        try {
+            if (obj instanceof Window) {
+                return ((Window)obj).getTitle().split("/")[0];
+            } else if (obj instanceof ViewNode) {
+                return ((ViewNode)obj).window.getTitle().split("/")[0];
+            }
+        } catch (Exception e) {
+            return null;
+        }
+        return pkgName;
+    }
+    
+    private static String toViewString(ViewNode view) {
+        StringBuilder sBuilder = new StringBuilder();
+        sBuilder.append("[name] " + view.name + "\n");
+        sBuilder.append("[hasCode] " + view.hashCode + "\n");
+        sBuilder.append("[viewId] " + view.id);
+        return sBuilder.toString();
+    }
+    
+    private static void printViewInfo(ViewNode view) {
+        System.out.println("-----------------------");
+        System.out.println("[name] " + view.name + "\n");
+        System.out.println("[hashCode] " + view.hashCode + "\n");
+        System.out.println("[viewId] " + view.id);
+        System.out.println("-----------------------");
+        for (ViewNode v : view.children) {
+            printViewInfo(v);
         }
     }
 }
