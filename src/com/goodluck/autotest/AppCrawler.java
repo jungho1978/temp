@@ -57,11 +57,11 @@ public class AppCrawler {
             if (w.getHashCode() == id) {
                 System.out.println("Target App [" + getPkgName(w) + "]");
                 String pkgName = getPkgName(w);
+                //ViewNode view = DeviceBridge.loadWindowData(w);
+                //printViewInfo(view);
+                IChimpDevice chimpDevice = new AdbChimpDevice(device);
                 ViewNode view = DeviceBridge.loadWindowData(w);
-                printViewInfo(view);
-//                IChimpDevice chimpDevice = new AdbChimpDevice(device);
-//                ViewNode view = DeviceBridge.loadWindowData(w);
-//                traverseView(chimpDevice, device, pkgName, w, view);
+                traverseView(chimpDevice, device, pkgName, w, view);
             }
         }
 
@@ -125,15 +125,19 @@ public class AppCrawler {
         StringBuilder sBuilder = new StringBuilder();
         sBuilder.append("[name] " + view.name + "\n");
         sBuilder.append("[hasCode] " + view.hashCode + "\n");
-        sBuilder.append("[viewId] " + view.id);
+        sBuilder.append("[viewId] " + view.id + "\n");
+        System.out.println("[Visible] " + view.namedProperties.get("getVisibility()").value + "");
+        System.out.println("[Clickable] " + view.namedProperties.get("isClickable()").value);
         return sBuilder.toString();
     }
     
     private static void printViewInfo(ViewNode view) {
         System.out.println("-----------------------");
-        System.out.println("[name] " + view.name + "\n");
-        System.out.println("[hashCode] " + view.hashCode + "\n");
+        System.out.println("[name] " + view.name);
+        System.out.println("[hashCode] " + view.hashCode);
         System.out.println("[viewId] " + view.id);
+        System.out.println("[Visible] " + view.namedProperties.get("getVisibility()").value);
+        System.out.println("[Clickable] " + view.namedProperties.get("isClickable()").value);
         System.out.println("-----------------------");
         for (ViewNode v : view.children) {
             printViewInfo(v);
